@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AWS Instance Selector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: row;
+        }
+        .form-section {
+            flex: 1;
+        }
+        .note-section {
+            flex: 1;
+            margin-left: 20px;
+            padding: 10px;
+            background-color: #e9f7fd;
+            border-left: 5px solid #007bff;
+        }
+        h2 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: calc(100% - 22px);
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        input[type="radio"] {
+            margin-right: 5px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .btn-container {
+            text-align: center;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .warning {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-section">
+            <h2>AWS Instance Selector</h2>
+            <form id="awsForm">
+                <label for="computationalIntensity">Computational Intensity:</label>
+                <select id="computationalIntensity" name="computationalIntensity" required>
+                    <option value="">Select</option>
+                    <option value="cpu-intensive">CPU Intensive</option>
+                    <option value="memory-intensive">Memory Intensive</option>
+                    <option value="gpu-intensive">GPU Intensive</option>
+                </select>
+
+                <label for="dataSizeGB">Data Size (GB):</label>
+                <input type="number" id="dataSizeGB" name="dataSizeGB" required>
+
+                <label>Are you using any machine learning or deep learning frameworks?</label>
+                <table>
+                    <tr>
+                        <td><input type="radio" id="use-ml" name="ml-dl" value="use-ml" required></td>
+                        <td><label for="use-ml">Use Machine Learning</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="radio" id="use-dl" name="ml-dl" value="use-dl" required></td>
+                        <td><label for="use-dl">Use Deep Learning</label></td>
+                    </tr>
+                    <tr>
+                        <td><input type="radio" id="use-both" name="ml-dl" value="use-both" required></td>
+                        <td><label for="use-both">Use Both</label></td>
+                    </tr>
+                </table>
+
+                <label for="usageDuration">Expected Duration of Usage (in hours per day):</label>
+                <input type="number" id="usageDuration" name="usageDuration" required>
+
+                <div class="btn-container">
+                    <button type="button" onclick="selectAWSInstance()" class="btn">Select AWS Instance</button>
+                    <button type="button" onclick="clearForm()" class="btn">Clear Form</button>
+                </div>
+            </form>
+            <div id="result"></div>
+        </div>
+        <div class="note-section">
+            <h3>Notes:</h3>
+            <p><strong>CPU Intensive:</strong> Best for applications that require significant processing power, such as data analysis, web servers, and batch processing.</p>
+            <p><em>Examples:</em> Running a database, processing large spreadsheets, hosting a high-traffic website.</p>
+            <p><strong>Memory Intensive:</strong> Ideal for applications that need large amounts of RAM, such as in-memory databases, big data processing, and high-performance computing.</p>
+            <p><em>Examples:</em> In-memory caching, real-time data processing, running big data frameworks like Apache Spark.</p>
+            <p><strong>GPU Intensive:</strong> Suitable for applications that require high parallel processing power, such as machine learning, deep learning, and high-end scientific computations.</p>
+            <p><em>Examples:</em> Training deep learning models, video rendering, running simulations.</p>
+        </div>
+    </div>
+
+    <script>
+        function selectAWSInstance() {
+            const computationalIntensity = document.getElementById('computationalIntensity').value;
+            const dataSizeGB = parseFloat(document.getElementById('dataSizeGB').value);
+            const mlDlUsage = document.querySelector('input[name="ml-dl"]:checked').value;
+            const usageDuration = parseFloat(document.getElementById('usageDuration').value);
+
+            let instanceRecommendation = '';
+            let costEstimatePerHour = 0;
+            let instanceDetails = '';
+            let memorySize = 0;
+            let warningMessage = '';
+
+            if (mlDlUsage === 'use-ml' && computationalIntensity === 'gpu-intensive') {
+                warningMessage = '<p class="warning">Warning: GPU is not an ideal choice for machine learning alone and is very expensive. Consider CPU or Memory intensive options instead.</p>';
+            } else {
+                if (mlDlUsage === 'use-ml') {
+                    if (computationalIntensity === 'cpu-intensive') {
+                        if (dataSizeGB <= 4) {
+                            instanceRecommendation = 'Sagemaker-Balanced-Medium';
+                            costEstimatePerHour = 0.05;
+                            memorySize = 4;
+                            instanceDetails = 'Instance: Sagemaker-Balanced-Medium<br>vCPUs: 2<br>Memory: 4 GiB<br>Cost per hour: $0.05';
+                        } else if (dataSizeGB <= 8) {
+                            instanceRecommendation = 'Sagemaker-Balanced-Large';
+                            costEstimatePerHour = 0.10;
+                            memorySize = 8;
+                            instanceDetails = 'Instance: Sagemaker-Balanced-Large<br>vCPUs: 2<br>Memory: 8 GiB<br>Cost per hour: $0.10';
+                        } else {
+                            instanceRecommendation = 'Sagemaker-Balanced-XLarge';
+                            costEstimatePerHour = 0.20;
+                            memorySize = 16;
+                            instanceDetails = 'Instance: Sagemaker-Balanced-XLarge<br>vCPUs: 4<br>Memory: 16 GiB<br>Cost per hour: $0.20';
+                        }
+                    } else if (computationalIntensity === 'memory-intensive') {
+                        if (dataSizeGB <= 16) {
+                            instanceRecommendation = 'Sagemaker-RAMOptimal-XLarge';
+                            costEstimatePerHour = 0.23;
+                            memorySize = 16;
+                            instanceDetails = 'Instance: Sagemaker-RAMOptimal-XLarge<br>vCPUs: 4<br>Memory: 16 GiB<br>Cost per hour: $0.23';
+                        } else if (dataSizeGB <= 32) {
+                            instanceRecommendation = 'Sagemaker-RAMOptimal-2XLarge';
+                            costEstimatePerHour = 0.461;
+                            memorySize = 32;
+                            instanceDetails = 'Instance: Sagemaker-RAMOptimal-2XLarge<br>vCPUs: 8<br>Memory: 32 GiB<br>Cost per hour: $0.461';
+                        } else {
+                            instanceRecommendation = 'Sagemaker-RAMOptimal-4XLarge';
+                            costEstimatePerHour = 0.922;
+                            memorySize = 64;
+                            instanceDetails = 'Instance: Sagemaker-RAMOptimal-4XLarge<br>vCPUs: 16<br>Memory: 64 GiB<br>Cost per hour: $0.922';
+                        }
+                    }
+                } else if (mlDlUsage === 'use-dl' || mlDlUsage === 'use-both') {
+                    if (computationalIntensity === 'gpu-intensive') {
+                        if (dataSizeGB <= 8) {
+                            instanceRecommendation = 'Sagemaker-GPUAccel-XLarge';
+                            costEstimatePerHour = 0.7364;
+                            memorySize = 8;
+                            instanceDetails = 'Instance: Sagemaker-GPUAccel-XLarge<br>vCPUs: 4<br>Memory: 8 GiB<br>GPU: 1x 16GiB NVIDIA T4<br>Cost per hour: $0.7364';
+                        } else if (dataSizeGB <= 16) {
+                            instanceRecommendation = 'Sagemaker-GPUAccel-2XLarge';
+                            costEstimatePerHour = 0.94;
+                            memorySize = 16;
+                            instanceDetails = 'Instance: Sagemaker-GPUAccel-2XLarge<br>vCPUs: 8<br>Memory: 16 GiB<br>GPU: 1x 32GiB NVIDIA T4<br>Cost per hour: $0.94';
+                        } else if (dataSizeGB <= 32) {
+                            instanceRecommendation = 'Sagemaker-GPUAccel-4XLarge';
+                            costEstimatePerHour = 1.505;
+                            memorySize = 32;
+                            instanceDetails = 'Instance: Sagemaker-GPUAccel-4XLarge<br>vCPUs: 16<br>Memory: 32 GiB<br>GPU: 1x 64GiB NVIDIA T4<br>Cost per hour: $1.505';
+                        } else if (dataSizeGB <= 128) {
+                            instanceRecommendation = 'Sagemaker-GPUAccel-8XLarge';
+                            costEstimatePerHour = 2.72;
+                            memorySize = 128;
+                            instanceDetails = 'Instance: Sagemaker-GPUAccel-8XLarge<br>vCPUs: 32<br>Memory: 128 GiB<br>GPU: 1x 64GiB NVIDIA T4<br>Cost per hour: $2.72';
+                        } else if (dataSizeGB <= 196) {
+                            instanceRecommendation = 'Sagemaker-GPUAccel-12XLarge';
+                            costEstimatePerHour = 3.91;
+                            memorySize = 196;
+                            instanceDetails = 'Instance: Sagemaker-GPUAccel-12XLarge<br>vCPUs: 48<br>Memory: 196 GiB<br>GPU: 1x 64GiB NVIDIA T4<br>Cost per hour: $3.91';
+                        } else {
+                            instanceRecommendation = 'Sagemaker-GPUV100-8XLarge';
+                            costEstimatePerHour = 14.688;
+                            memorySize = 244;
+                            instanceDetails = 'Instance: Sagemaker-GPUV100-8XLarge<br>vCPUs: 32<br>Memory: 244 GiB<br>GPU: 4x 16GiB (64GiB) NVIDIA V100<br>Cost per hour: $14.688';
+                        }
+                    } else if (computationalIntensity === 'cpu-intensive') {
+                        if (dataSizeGB <= 8) {
+                            instanceRecommendation = 'Sagemaker-CPUOptimal-XLarge';
+                            costEstimatePerHour = 0.204;
+                            memorySize = 8;
+                            instanceDetails = 'Instance: Sagemaker-CPUOptimal-XLarge<br>vCPUs: 4<br>Memory: 8 GiB<br>Cost per hour: $0.204';
+                        } else if (dataSizeGB <= 16) {
+                            instanceRecommendation = 'Sagemaker-CPUOptimal-2XLarge';
+                            costEstimatePerHour = 0.408;
+                            memorySize = 16;
+                            instanceDetails = 'Instance: Sagemaker-CPUOptimal-2XLarge<br>vCPUs: 8<br>Memory: 16 GiB<br>Cost per hour: $0.408';
+                        } else {
+                            instanceRecommendation = 'Sagemaker-CPUOptimal-4XLarge';
+                            costEstimatePerHour = 0.816;
+                            memorySize = 32;
+                            instanceDetails = 'Instance: Sagemaker-CPUOptimal-4XLarge<br>vCPUs: 16<br>Memory: 32 GiB<br>Cost per hour: $0.816';
+                        }
+                    } else if (computationalIntensity === 'memory-intensive') {
+                        if (dataSizeGB <= 16) {
+                            instanceRecommendation = 'Sagemaker-RAMOptimal-XLarge';
+                            costEstimatePerHour = 0.23;
+                            memorySize = 16;
+                            instanceDetails = 'Instance: Sagemaker-RAMOptimal-XLarge<br>vCPUs: 4<br>Memory: 16 GiB<br>Cost per hour: $0.23';
+                        } else if (dataSizeGB <= 32) {
+                            instanceRecommendation = 'Sagemaker-RAMOptimal-2XLarge';
+                            costEstimatePerHour = 0.461;
+                            memorySize = 32;
+                            instanceDetails = 'Instance: Sagemaker-RAMOptimal-2XLarge<br>vCPUs: 8<br>Memory: 32 GiB<br>Cost per hour: $0.461';
+                        } else {
+                            instanceRecommendation = 'Sagemaker-RAMOptimal-4XLarge';
+                            costEstimatePerHour = 0.922;
+                            memorySize = 64;
+                            instanceDetails = 'Instance: Sagemaker-RAMOptimal-4XLarge<br>vCPUs: 16<br>Memory: 64 GiB<br>Cost per hour: $0.922';
+                        }
+                    }
+                }
+            }
+
+            let totalCostEstimate = usageDuration * costEstimatePerHour * 28; // 28 days per month
+            warningMessage += dataSizeGB > memorySize ? '<p class="warning">Warning: The selected instance may not have enough memory to handle the data size.</p>' : '';
+
+            let result = `
+                <h3>Recommended AWS Instance</h3>
+                <p>${instanceDetails}</p>
+                ${warningMessage}
+                <h4>Estimated Cost</h4>
+                <p>Total estimated cost per month: $${totalCostEstimate.toFixed(2)}</p>
+            `;
+            document.getElementById('result').innerHTML = result;
+        }
+
+        function clearForm() {
+            document.getElementById('awsForm').reset();
+            document.getElementById('result').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
